@@ -31,8 +31,7 @@ const ConnectionInd = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
 
-  // Speech detection parameters
-  const speechDetectionThreshold = 10; // Adjust based on testing
+  const speechDetectionThreshold = 10;
   const silenceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -46,14 +45,12 @@ const ConnectionInd = () => {
       setUserId(userIdRef.current);
     }
 
-    // Initialize audio context
     if (typeof window !== "undefined") {
       audioContext.current = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
     }
 
     return () => {
-      // Clean up audio context when component unmounts
       if (audioContext.current) {
         audioContext.current.close();
       }
@@ -68,23 +65,19 @@ const ConnectionInd = () => {
     if (!audioContext.current) return;
 
     try {
-      // Decode base64 to bytes
       const binaryString = window.atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Convert to Int16Array (PCM format)
       const pcmData = new Int16Array(bytes.buffer);
 
-      // Convert to float32 for Web Audio API
       const float32Data = new Float32Array(pcmData.length);
       for (let i = 0; i < pcmData.length; i++) {
         float32Data[i] = pcmData[i] / 32768.0;
       }
 
-      // Calculate audio level for visualization (optional)
       let sum = 0;
       for (let i = 0; i < float32Data.length; i++) {
         sum += Math.abs(float32Data[i]);
@@ -92,11 +85,9 @@ const ConnectionInd = () => {
       const level = Math.min((sum / float32Data.length) * 100 * 5, 100);
       setAudioLevel(level);
 
-      // Add to queue if not interrupted by user speaking
       if (!isUserSpeaking) {
         audioQueue.current.push(float32Data);
 
-        // Start playing if not already playing
         if (!isPlaying.current) {
           playNextInQueue();
         }
@@ -107,10 +98,9 @@ const ConnectionInd = () => {
   };
 
   const playNextInQueue = () => {
-    // Stop playback if user is speaking
     if (isUserSpeaking) {
       stopCurrentPlayback();
-      audioQueue.current = []; // Clear the queue
+      audioQueue.current = [];
       return;
     }
 
@@ -132,17 +122,14 @@ const ConnectionInd = () => {
 
       const float32Data = audioQueue.current.shift()!;
 
-      // Create a mono audio buffer with sample rate of 24000 (adjust if needed)
       const audioBuffer = audioContext.current.createBuffer(
         1,
         float32Data.length,
         24000
       );
 
-      // Copy the float32 data to the buffer
       audioBuffer.getChannelData(0).set(float32Data);
 
-      // Create and configure source
       currentSource.current = audioContext.current.createBufferSource();
       currentSource.current.buffer = audioBuffer;
       currentSource.current.connect(audioContext.current.destination);
@@ -151,7 +138,6 @@ const ConnectionInd = () => {
         isPlaying.current = false;
         currentSource.current = null;
 
-        // Play next chunk if available and user is not speaking
         if (!isUserSpeaking) {
           playNextInQueue();
         }
@@ -164,12 +150,10 @@ const ConnectionInd = () => {
       setIsPlayingAudio(false);
       currentSource.current = null;
 
-      // Try to continue with next chunk despite error
       playNextInQueue();
     }
   };
 
-  // Function to stop current playback
   const stopCurrentPlayback = () => {
     if (currentSource.current) {
       try {
@@ -184,30 +168,25 @@ const ConnectionInd = () => {
     setIsPlayingAudio(false);
   };
 
-  // Handle user speech detection
   const handleSpeechDetection = (level: number) => {
-    // If level is above threshold and we're not already tracking speech
     if (level > speechDetectionThreshold && !isUserSpeaking) {
       console.log("User started speaking, level:", level);
       setIsUserSpeaking(true);
 
-      // If AI is currently playing audio, stop it
       if (isPlaying.current) {
         stopCurrentPlayback();
       }
     }
 
-    // Reset silence detection timer whenever we detect sound
     if (level > speechDetectionThreshold) {
       if (silenceTimeout.current) {
         clearTimeout(silenceTimeout.current);
       }
 
-      // Set new timeout to detect when user stops speaking
       silenceTimeout.current = setTimeout(() => {
         console.log("User stopped speaking");
         setIsUserSpeaking(false);
-      }, 1000); // 1 second of silence to consider speech ended
+      }, 1000);
     }
   };
 
@@ -248,7 +227,6 @@ const ConnectionInd = () => {
         data;
 
       if (ai_audio_data && !isUserSpeaking) {
-        // Process and play the audio data
         processAudioData(ai_audio_data);
       }
 
@@ -273,7 +251,6 @@ const ConnectionInd = () => {
       // };
     });
 
-    // Cleanup function to remove event listeners
     return () => {
       webSocketService.removeAllListeners("statusChange");
       webSocketService.removeAllListeners("connect-stream-done");
@@ -354,7 +331,7 @@ const ConnectionInd = () => {
           numberOfOutputs: 1,
           processorOptions: {
             sampleRate: 16000,
-            bufferSize: 4096, // Larger buffer size like original
+            bufferSize: 4096,
           },
           channelCount: 1,
           channelCountMode: "explicit",
@@ -367,7 +344,6 @@ const ConnectionInd = () => {
         const { pcmData, level } = event.data;
         setAudioLevel(level);
 
-        // Check for user speech based on audio level
         handleSpeechDetection(level);
 
         const pcmArray = new Uint8Array(pcmData);

@@ -16,7 +16,7 @@ class WebSocketService extends EventEmitter {
 
   public connect() {
     if (!this.socket || this.socket.readyState === WebSocket.CLOSED) {
-      const websocketUrl = "ws://api-staging.englishleaningapi.online/ws";
+      const websocketUrl = process.env.NEXT_PUBLIC_API_URL as string;
 
       try {
         this.socket = new WebSocket(websocketUrl);
