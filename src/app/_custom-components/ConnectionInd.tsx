@@ -44,14 +44,10 @@ const ConnectionInd = () => {
     }
 
     if (typeof window !== "undefined") {
-      interface WindowWithAudioContext extends Window {
-        AudioContext: typeof AudioContext;
-        webkitAudioContext?: typeof AudioContext;
-      }
-
-      const windowWithAudio = window as WindowWithAudioContext;
-      audioContext.current = new (windowWithAudio.AudioContext ||
-        windowWithAudio.webkitAudioContext)();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      audioContext.current = new (window.AudioContext ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).webkitAudioContext)();
     }
 
     return () => {
@@ -226,6 +222,7 @@ const ConnectionInd = () => {
     webSocketService.on("ai-audio-response", (data) => {
       console.log("Received AI audio response:", data);
 
+      // Only process audio if user is not currently speaking
       const { ai_audio_data, stream_end } = data;
 
       if (ai_audio_data && !isUserSpeaking) {
@@ -479,7 +476,7 @@ const ConnectionInd = () => {
             button.`}
           </p>
           <p>
-            {`2. Click the microphone button to start recording your voice. It
+            {` 2. Click the microphone button to start recording your voice. It
             will stream audio to backend.`}
           </p>
           <p>{`3. Click the microphone button again to stop recording.`}</p>
