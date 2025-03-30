@@ -48,6 +48,7 @@ class WebSocketService extends EventEmitter {
               this.emit(data.event, data.data || data);
             }
           } catch (error) {
+            console.error("Failed to parse WebSocket message:", error);
             this.emit("message", event.data);
           }
         };
@@ -108,6 +109,7 @@ class WebSocketService extends EventEmitter {
     return this.socket?.readyState === WebSocket.OPEN;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public send(data: any) {
     if (this.socket && this.isConnected()) {
       this.socket.send(typeof data === "string" ? data : JSON.stringify(data));
